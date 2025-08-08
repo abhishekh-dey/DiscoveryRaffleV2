@@ -3,20 +3,23 @@ import Layout from '../components/Layout';
 import GlassCard from '../components/GlassCard';
 import { Trophy, Users, Clock, Play } from 'lucide-react';
 import { Contestant } from '../types';
-import { loadContestants, saveContestants } from '../utils/storage';
-import { selectWinner } from '../utils/raffle';
+import { getWinners, addWinner } from '../utils/storage';
+import { getAllContestants, drawWinners } from '../utils/raffle';
 
 export const Raffle: React.FC = () => {
   const [contestants, setContestants] = useState<Contestant[]>([]);
+  const [winners, setWinners] = useState<string[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [winner, setWinner] = useState<Contestant | null>(null);
 
   useEffect(() => {
-    setContestants(loadContestants());
+    setContestants(getAllContestants());
+    setWinners(getWinners());
   }, []);
 
   const handleDraw = async () => {
-    if (contestants.length === 0) return;
+    const eligibleContestants = contestants.filter(c => !winners.includes(c.name));
+    if (eligibleContestants.length === 0) return;
 
     setIsDrawing(true);
     setWinner(null);
@@ -24,20 +27,17 @@ export const Raffle: React.FC = () => {
     // Simulate drawing animation
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const selectedWinner = selectWinner(contestants);
+    const selectedWinner = drawWinners(eligibleContestants, 1)[0];
     setWinner(selectedWinner);
 
-    // Update contestants to mark winner
-    const updatedContestants = contestants.map(c => 
-      c.id === selectedWinner.id ? { ...c, hasWon: true } : c
-    );
-    setContestants(updatedContestants);
-    saveContestants(updatedContestants);
+    // Add winner to storage
+    addWinner(selectedWinner.name);
+    setWinners([...winners, selectedWinner.name]);
 
     setIsDrawing(false);
   };
 
-  const eligibleContestants = contestants.filter(c => !c.hasWon);
+  const eligibleContestants = contestants.filter(c => !winners.includes(c.name));
 
   return (
     <Layout>
@@ -77,7 +77,7 @@ export const Raffle: React.FC = () => {
               <Trophy className="w-8 h-8 text-yellow-400" />
               <div>
                 <p className="text-sm text-gray-400">Winners</p>
-                <p className="text-2xl font-bold text-white">{contestants.filter(c => c.hasWon).length}</p>
+                <p className="text-2xl font-bold text-white">{winners.length}</p>
               </div>
             </div>
           </GlassCard>
@@ -90,7 +90,7 @@ export const Raffle: React.FC = () => {
                 <Trophy className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
                 <h2 className="text-3xl font-bold text-white mb-2">Congratulations!</h2>
                 <p className="text-xl text-gray-300">{winner.name}</p>
-                <p className="text-gray-400">{winner.email}</p>
+                <p className="text-gray-400">{winner.department}</p>
               </div>
             )}
 
@@ -131,7 +131,7 @@ export const Raffle: React.FC = () => {
                   className="p-3 bg-white/5 rounded-lg border border-white/10"
                 >
                   <p className="font-medium text-white">{contestant.name}</p>
-                  <p className="text-sm text-gray-400">{contestant.email}</p>
+                  <p className="text-sm text-gray-400">{contestant.department}</p>
                 </div>
               ))}
             </div>

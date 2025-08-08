@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout } from '../components/Layout';
+import Layout from '../components/Layout';
 import GlassCard from '../components/GlassCard';
 import { Trophy, Users, Clock, Play } from 'lucide-react';
 import { Contestant } from '../types';
